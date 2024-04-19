@@ -11,8 +11,8 @@ export default class ClientAdmFacadeFactory {
         const addUseCase = new AddClientUseCase(clientRepository);
         
         return new ClientAdmFacade({
-            addUseCase: addUseCase,
-            findUseCase: findUseCase
+            addUsecase: addUseCase,
+            findUsecase: findUseCase
         });
     }
 }

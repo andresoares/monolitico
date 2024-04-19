@@ -1,85 +1,110 @@
 import { Sequelize } from "sequelize-typescript"
-import Id from "../../@shared/domain/entity/value-object/id.value-object";
-import Client from "../domain/client.entity";
-import ClientModel from "../repository/client.model";
-import ClientRepository from "../repository/client.repository";
-import AddClientUseCase from "../usecase/add-client/add-client.usecase";
-import ClientAdmFacade from "./client-adm.facade";
-import FindClientUseCase from "../usecase/find-client/find-client.usecase";
-import ClientAdmFacadeFactory from "../factory/client.factory";
+import { ClientAdmModel } from "../repository/client.model"
+import ClientRepository from "../repository/client.repository"
+import AddClientUseCase from "../usecase/add-client/add-client.usecase"
+import ClientAdmFacade from "./client-adm.facade"
+import Address from "../../@shared/domain/entity/value-object/address.value-object"
+import ClientAdmFacadeFactory from "../factory/client.factory"
 
 
-describe("ClientAdmFacade test", () => {
-    let sequelize: Sequelize;
 
-    beforeEach(async () => {
-        sequelize = new Sequelize({
-            dialect: "sqlite",
-            storage: ":memory:",
-            logging: false,
-            sync: { force: true }
-        });
+describe("Client Adm Facade test", () => {
 
-        await sequelize.addModels([ClientModel]);
-        await sequelize.sync();
-    });
+  let sequelize: Sequelize
 
+  beforeEach(async () => {
+    sequelize = new Sequelize({
+      dialect: 'sqlite',
+      storage: ':memory:',
+      logging: false,
+      sync: { force: true }
+    })
 
-    afterEach(async () => {
-        await sequelize.close();
-    });
+    sequelize.addModels([ClientAdmModel])
+    await sequelize.sync()
+  })
 
-    it("should create a client", async () => {
-        
-        const facade = ClientAdmFacadeFactory.create();
+  afterEach(async () => {
+    await sequelize.close()
+  })
 
-        const input = {
-            id: "1",
-            name: "Product 1",
-            email: "a@a.com",
-            address: "Address 1"
-        };
+  it("should create a client", async () => {
 
-        await facade.add(input);
+    const repository = new ClientRepository()
+    const addUsecase = new AddClientUseCase(repository)
+    const facade = new ClientAdmFacade({
+      addUsecase: addUsecase,
+      findUsecase: undefined,
+    })
 
-        const clientDb = await ClientModel.findOne({
-            where: {
-                id: input.id
-            }
-        });
+    const input = {
+      id: "1",
+      name: "Lucian",
+      email: "lucian@xpto.com",
+      document: "1234-5678",
+      address: new Address(
+        "Rua 123",
+        "99",
+        "Casa Verde",
+        "Criciúma",
+        "SC",
+        "88888-888",
+      )
+    }
 
-        expect(clientDb).toBeDefined();
-        expect(input.id).toEqual(clientDb.id);
-        expect(input.name).toEqual(clientDb.name);
-        expect(input.address).toEqual(clientDb.address);
-        expect(input.email).toEqual(clientDb.email);
-    });
+    await facade.add(input)
 
-    it("should find a client", async () => {
-        
-        const facade = ClientAdmFacadeFactory.create();
+    const client = await ClientAdmModel.findOne({ where: { id: "1" } })
 
-        const clientProps = {
-            id: new Id("1"),
-            name: "Product 1",
-            email: "a@a.com",
-            address: "Address 1"
-        }
+    expect(client).toBeDefined()
+    expect(client.id).toBe(input.id)
+    expect(client.name).toBe(input.name)
+    expect(client.email).toBe(input.email)
+    expect(client.document).toBe(input.document)
+    expect(client.street).toBe(input.address.street)
+  })
 
-        await ClientModel.create({
-            id: clientProps.id.id,
-            name: clientProps.name,
-            email: clientProps.email,
-            address: clientProps.address,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        })
+  it("should find a client", async () => {
 
-        const client = await facade.find({ id: "1" });
+    // const repository = new ClientRepository()
+    // const addUsecase = new AddClientUseCase(repository)
+    // const findUseCase = new FindClientUseCase(repository)
+    // const facade = new ClientAdmFacade({
+    //   addUseCase: addUsecase,
+    //   findUseCase: findUseCase
+    // })
 
-        expect(clientProps.id.id).toBe(client.id);
-        expect(clientProps.name).toBe(client.name);
-        expect(clientProps.email).toBe(client.email);
-        expect(clientProps.address).toBe(client.address);
-    });
+    const facade = ClientAdmFacadeFactory.create()
+
+    const input = {
+      id: "1",
+      name: "Lucian",
+      email: "lucian@xpto.com",
+      document: "1234-5678",
+      address: new Address(
+        "Rua 123",
+        "Criciúma",
+        "SC",
+        "88888-888",
+        "99",
+        "Casa Verde"
+      )
+    }
+
+    await facade.add(input)
+
+    const client = await facade.find({ id: "1" })
+
+    expect(client).toBeDefined()
+    expect(client.id).toBe(input.id)
+    expect(client.name).toBe(input.name)
+    expect(client.email).toBe(input.email)
+    expect(client.document).toBe(input.document)
+    expect(client.address.street).toBe(input.address.street)
+    expect(client.address.number).toBe(input.address.number)
+    expect(client.address.complement).toBe(input.address.complement)
+    expect(client.address.city).toBe(input.address.city)
+    expect(client.address.state).toBe(input.address.state)
+    expect(client.address.zipCode).toBe(input.address.zipCode)
+  })
 })
